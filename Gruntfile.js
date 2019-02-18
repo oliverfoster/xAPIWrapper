@@ -1,4 +1,23 @@
 module.exports = function(grunt) {
+  var fs = require("fs");
+  var path = require("path");
+
+  var wrapper = grunt.file.read('./umdwrapper.js').split('//<%= output =>');
+
+  (function makeStrippedTempFiles(files) {
+    if (!fs.existsSync('temp')) fs.mkdirSync('temp');
+    files.forEach((file)=>{
+      var stripped = grunt.file.read(file).replace(/(^([^\n]+\n{1}){1})|(\n[^\n]+\n$)/g, "");
+      fs.writeFileSync(path.join('temp', path.parse(file).base), stripped);
+    });
+  })([
+    'src/activitytypes.js',
+    'src/verbs.js',
+    'src/xapiwrapper.js',
+    'src/xapistatement.js',
+    'src/xapi-util.js',
+    'src/xapi-launch.js'
+  ]);
 
   // Project configuration.
   grunt.initConfig({
@@ -10,20 +29,35 @@ module.exports = function(grunt) {
       }
     },
     'uglify': {
-      options: {
-        banner: '/*! <%= pkg.name %> v <%= pkg.version %> | Built on <%= grunt.template.today("yyyy-mm-dd HH:MM:sso") %> */\n'
-      },
       'build': {
+        options: {
+          banner: '/*! <%= pkg.name %> v <%= pkg.version %> | Built on <%= grunt.template.today("yyyy-mm-dd HH:MM:sso") %> */\n'+wrapper[0],
+          footer: wrapper[1],
+          sourceMap: {
+              filename: 'xapiwrapper.min.js.map',
+              url: 'xapiwrapper.min.js.map',
+              root: 'dist/',
+              includeSources: true
+          },
+          // output: {
+          //     beautify: true
+          // },
+          mangle: false,
+          output: {
+              comments: 'all',
+              beautify: true
+          }
+        },
         files: {
           'dist/xapiwrapper.min.js': [
-            'node_modules/text-encoding/lib/encoding.js',
             'lib/cryptojs_v3.1.2.js',
-            'src/activitytypes.js',
-            'src/verbs.js',
-            'src/xapiwrapper.js',
-            'src/xapistatement.js',
-            'src/xapi-util.js',
-            'src/xapi-launch.js'
+            'lib/utf8-encoding.js',
+            'temp/activitytypes.js',
+            'temp/verbs.js',
+            'temp/xapiwrapper.js',
+            'temp/xapistatement.js',
+            'temp/xapi-util.js',
+            'temp/xapi-launch.js'
           ]
         }
       }
